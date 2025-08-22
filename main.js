@@ -9,6 +9,28 @@ module.exports.loop = function() {
     const REPAIR_HIT_THRESHOLD = 200000;  // tower will repair structures' hit to this threshold (200 k)
 
     //
+    // ======== Scout Unit ========
+    //
+    {
+        let creep =  _.filter(Game.creeps, function (creep) { return creep.name == "scout"; })[0];
+        if (!creep) {
+            spawn.spawnCreep([WORK, WORK, CARRY, MOVE], "scout", {directions: [TOP]});
+        }
+        else {
+            if (creep.store[RESOURCE_MIST]) {
+                creep.moveTo(new RoomPosition(33, 2, "E56N59"));
+                creep.transfer(creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: {structureType: STRUCTURE_CONTAINER}}), RESOURCE_MIST);
+            }
+            else {
+                creep.moveTo(new RoomPosition(37, 36, "E56N60"));
+                let mist_resource = Game.getObjectById("68a2dd841ee9debd04e42070");
+                creep.harvest(mist_resource);
+            }
+            spawn.renewCreep(creep);
+        }
+    }
+
+    //
     // ======== Mining Unit ========
     //
     let miners = ["miner_0", "miner_1"];
@@ -72,18 +94,21 @@ module.exports.loop = function() {
         // defence logic
         let hostiles = room.find(FIND_HOSTILE_CREEPS);
         if (hostiles.length > 0) {
-            var username = hostiles[0].owner.username;
-            Game.notify(`User ${username} spotted in room ${roomName}`);
-            structure.attack(hostiles[0]);
-        }
+            hostiles.forEach(function(hostile) {
+                structure.attack(hostile);
+            });
 
-        // repair logic
-        let repairables = room.find(FIND_STRUCTURES, {
-            filter: object => object.hits < Math.min(object.hitsMax, REPAIR_HIT_THRESHOLD)  // repair to at least threshold or full health
-        });
-        repairables.sort((a, b) => a.hits - b.hits);
-        if (repairables.length > 0) {
-            structure.repair(repairables[0]);
+            Game.notify(`User ${hostiles[0].owner.username} spotted in room ${room}`);
+        }
+        else {
+            // repair logic
+            let repairables = room.find(FIND_STRUCTURES, {
+                filter: object => object.hits < Math.min(object.hitsMax, REPAIR_HIT_THRESHOLD)  // repair to at least threshold or full health
+            });
+            repairables.sort((a, b) => a.hits - b.hits);
+            if (repairables.length > 0) {
+                structure.repair(repairables[0]);
+            }
         }
     });
 
